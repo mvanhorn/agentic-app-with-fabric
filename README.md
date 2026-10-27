@@ -1,6 +1,6 @@
 # 🏦 Agentic Banking App with Microsoft Fabric
 
-> Last updated: 🟢 2026-04-16 🟢
+> Last updated: 🟢 2026-04-27 🟢
 
 An interactive banking demo that shows how databases power **OLTP**, **OLAP**, and **AI workloads** side-by-side, all wired together through Microsoft Fabric.
 
@@ -14,7 +14,7 @@ An interactive banking demo that shows how databases power **OLTP**, **OLAP**, a
 |---|---|
 | 🚀 [Setup Guide](#-setup-guide) | Get the app running locally |
 | ⚗️ [Explore Fabric Workloads](docs/EXPLORE.md) | RTI, Power BI, Data Agent walkthroughs |
-| 🧑‍💻 [Learn More](docs/LEARN.md) | Architecture, agents, embeddings, contributing |
+| 🧑‍💻 [Learn More & Contribute!](docs/LEARN.md) | Architecture, agents, embeddings, contributing |
 
 ---
 
@@ -33,25 +33,22 @@ An interactive banking demo that shows how databases power **OLTP**, **OLAP**, a
 
 ### Prerequisites
 
-Before you begin, install the following:
+**IMPORTANT**: Before you begin, install the following:
 
 | Requirement | Notes |
 |---|---|
-| [Node.js](https://nodejs.org/) v18+ | Frontend |
-| [Python](https://www.python.org/) 3.11.9+ | Backend |
-| [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) | Auth — [Windows](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-windows) · [macOS](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-macos) |
-| [ODBC Driver 18 for SQL Server](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server) | Database connectivity |
-| Microsoft Fabric capacity | [Start a free 60-day trial](https://learn.microsoft.com/en-us/fabric/fundamentals/fabric-trial) if needed |
-| Azure OpenAI resource | [Create one in Azure Portal](https://azure.microsoft.com/en-us/products/ai-services/openai-service) |
-
-> **Recommended:** VS Code (tested environment)
-
+| [VS Code](https://code.visualstudio.com/) | Recommended; tested environment |
+| [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) | Required to use the included Dev Container in VS Code |
+| Docker Desktop / Docker Engine | Required to use the included Dev Container |
+| [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) | Auth. -  [Windows](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-windows) · [macOS](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-macos) |
+| [Node.js](https://nodejs.org/) v18+ | Frontend. **Skip this install when using the Dev Container**; it already includes Node.js 20.19.0 |
+| [Python](https://www.python.org/) 3.11.9+ | Backend. **Skip this install when using the Dev Container**; it already includes Python 3.11 |
+| [ODBC Driver 18 for SQL Server](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server) | Database connectivity. **Skip this install when using the Dev Container**; it already includes ODBC Driver 18 |
+| Microsoft Fabric capacity | [Start a free 60-day trial](https://learn.microsoft.com/en-us/fabric/fundamentals/fabric-trial) if needed. NOTE: Data Agent is not available in Free Trial |
+| Azure OpenAI resource | [Create one in Azure Portal](https://azure.microsoft.com/en-us/products/ai-services/openai-service) - Deploy an llm model (ex. gpt 4.1) and **text-embedding-ada-002** embedding model |
 ---
 
-### Quick Setup Video
-
-[![Watch the Setup Demo](./assets/video_play.png)](https://youtu.be/svxQccXyreM)
----
+## Setup with dev container
 
 ### Step 1 — Clone the Repo
 
@@ -60,35 +57,25 @@ git clone https://github.com/Azure-Samples/agentic-app-with-fabric.git
 cd agentic-app-with-fabric
 ```
 
----
+### Step 2 - Run the Dev Container
+Open the main folder in VS Code and run `Dev Containers: Rebuild and Reopen in Container` in the quick access bar as shown below (Reminder that you must have Docker installed):
 
-### Step 2 — Install Python Dependencies
+![devc](assets/dev_container_command.png)
 
-```bash
-# Create and activate a virtual environment
-# Windows: 
-python -m venv venv
-.\venv\Scripts\activate
+ Running this command start the process of seting up the container, during which `.devcontainer/post-create.sh` creates `.venv` virtual environment, runs `pip install -r requirements.txt` and install required Python version and libraries, runs `npm install`, copies `backend/.env.sample` to `backend/.env` if needed, and the container forwards ports `5173`, `5001`, and `5002`
 
-# macOS / Linux: 
-python3 -m venv venv
-source venv/bin/activate
+When container setup is complete, you will see below in VS code terminal:
 
-# Install packages
-pip install -r requirements.txt
-```
+![dev2](assets/container_done.png)
 
----
+Press enter and you will see below, which means now you are in the container:
 
-### Step 3 — Install Frontend Dependencies
+![dev3](assets/container_active.png)
 
-```bash
-npm install
-```
 
----
+⚠️**Facing Issues with Dev container Setup?** Follow steps here instead to install dependencies on your system: [Manual Setup](./docs/MANUAL_SETUP.md)
 
-### Step 4 — Log in to Azure
+### Step 3 — Log in to Azure
 
 ```bash
 az login
@@ -97,6 +84,53 @@ az login
 Use your Microsoft Fabric account credentials. Watch for browser pop-ups.
 
 > ⚠️ You must repeat `az login` any time you restart the backend.
+
+---
+
+### Step 4 — Preflight Check
+
+Before deploying anything, run the preflight to verify your dev container,
+Azure context, region, Fabric capacity, OpenAI deployments, and tenant
+permissions are all set correctly. This catches 95% of issues up-front instead
+of discovering them halfway through a 10-minute deployment.
+
+**First, set your target region in `backend/.env`** (single source of truth used
+by all scripts):
+
+```bash
+# backend/.env
+AZURE_REGION="swedencentral"            # or eastus2, westeurope, etc.
+AZURE_RESOURCE_GROUP="agentic-app-with-fabric-rg"
+```
+
+Both values come pre-populated in `backend/.env.sample` (copied to `.env` by
+the dev container). Edit `AZURE_REGION` to match where you want your Fabric
+capacity, Cosmos DB, and Azure OpenAI provisioned.
+
+Then run:
+
+```bash
+# Reads AZURE_REGION + AZURE_RESOURCE_GROUP from backend/.env
+python3 scripts/preflight.py
+
+# Override the region for a single run (also persisted back to .env)
+python3 scripts/preflight.py --region eastus2
+
+# Auto-fix: register providers, create RG + Fabric capacity (F4),
+# create Azure OpenAI account + deploy gpt-4o + text-embedding-ada-002,
+# and write AZURE_OPENAI_KEY/ENDPOINT/DEPLOYMENT into backend/.env
+python3 scripts/preflight.py --fix
+
+# Pin a specific OpenAI resource if you have several
+python3 scripts/preflight.py --openai-resource my-aoai
+```
+
+Exit code `0` = ready, exit code `1` = blocking issues found (suggested fixes printed).
+
+> ℹ️ **Region notes:**
+> - **Cosmos DB in Fabric** is unsupported in: `indiawest`, `qatarcentral`, `uaecentral`, `austriaeast`, `chilecentral`, `southcentralus`. In `israelcentral` it's documented as available but the rollout is delayed — preflight will warn and suggest a fallback (`scripts/provision_azure_cosmos.py` provisions a regular Azure Cosmos DB account instead).
+> - **Embedding model** must be `text-embedding-ada-002` (the repo's vector embeddings were generated with it).
+> - **Chat model** preflight cascades through `gpt-4o-mini` → `gpt-4o` → `gpt-4.1-mini` → `gpt-4.1` and stops at the first one that deploys in your region/quota.
 
 ---
 
@@ -129,13 +163,15 @@ The script will prompt you to select a Fabric capacity, then create a workspace 
 | ContentSafetyMonitoring | KQL Dashboard |
 | QA_Evaluation_Notebook | Notebook |
 
-> 💡 **Alternative deployment:** prefer Git integration? See [Deploy via Git Integration](git_integration_deployment.md).
+Wait for the script to finish (disregard warnings if you see any), at the end, it will give you a final status of all items that were successfully deployed.
+
+> 💡 **Alternative deployment of Fabric artifacts:** prefer Git integration? See [Deploy via Git Integration](git_integration_deployment.md).
 
 ---
 
 ### Step 6 — Finalize the Deployment
 
-After `setup_workspace.py` completes, run:
+After `setup_workspace.py` completes, wait a minute or two and run:
 
 ```bash
 # Windows:
@@ -199,7 +235,7 @@ The following were written to `.env` automatically by the deployment script:
 FABRIC_SQL_CONNECTION_URL_AGENTIC   # SQL Database connection string
 FABRIC_DATA_AGENT_SERVER_URL        # Data Agent MCP endpoint
 FABRIC_DATA_AGENT_TOOL_NAME         # Data Agent tool name
-USE_FABRIC_DATA_AGENT               # Set to "true"
+USE_FABRIC_DATA_AGENT               # default is false
 COSMOS_DB_DATABASE_NAME             # Set to "agentic_cosmos_db"
 ```
 
